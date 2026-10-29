@@ -364,7 +364,7 @@ describe SlimLint::Linter::ControlStatementSpacing do
             | Hello
       SLIM
 
-      it { should report_lint }
+      it { should report_lint count: 1, line: 3 }
     end
 
     context 'and the output statement has appropriate spacing' do
@@ -383,6 +383,133 @@ describe SlimLint::Linter::ControlStatementSpacing do
          b"
           span= foo
       SLIM
+
+      it { should report_lint count: 1, line: 3 }
+    end
+    context 'and the standalone output statement has appropriate spacing' do
+      let(:slim) { <<~'SLIM' }
+        div class="a \
+         b"
+          = foo
+      SLIM
+
+      it { should_not report_lint }
+    end
+
+    context 'and the standalone output statement is missing spacing' do
+      let(:slim) { <<~'SLIM' }
+        div class="a \
+         b"
+          =foo
+      SLIM
+
+      it { should report_lint count: 1, line: 3 }
+    end
+  end
+
+  context 'when an output statement is not attached to a tag' do
+    context 'and it has appropriate spacing' do
+      let(:slim) { <<~'SLIM' }
+        = ok
+        == ok
+        =< ok
+        => ok
+        ==<> ok
+        = ok ==bad
+      SLIM
+
+      it { should_not report_lint }
+    end
+
+    context 'and it lacks spacing after =' do
+      let(:slim) { '=bad' }
+
+      it { should report_lint line: 1 }
+    end
+
+    context 'and it lacks spacing after ==' do
+      let(:slim) { '==bad' }
+
+      it { should report_lint line: 1 }
+    end
+
+    context 'and it lacks spacing after a whitespace modifier' do
+      let(:slim) { <<~'SLIM' }
+        =<bad
+        =>bad
+        ==<>bad
+      SLIM
+
+      it { should report_lint count: 3 }
+    end
+
+    context 'and it has too much spacing after =' do
+      let(:slim) { '=  bad' }
+
+      it { should report_lint }
+    end
+
+    context 'and it is nested in the block of another output statement' do
+      let(:slim) { <<~'SLIM' }
+        = form_for x do |f|
+          =f.input :title
+      SLIM
+
+      it { should report_lint count: 1, line: 2 }
+    end
+
+    context 'and it is nested in a control statement' do
+      let(:slim) { <<~'SLIM' }
+        - if x
+          =bad
+      SLIM
+
+      it { should report_lint count: 1, line: 2 }
+    end
+
+    context 'and its code spans multiple lines' do
+      let(:slim) { <<~'SLIM' }
+        = link_to 'Reset',
+          url_for
+      SLIM
+
+      it { should_not report_lint }
+    end
+  end
+
+  context 'when an output statement attached to a tag lacks spacing' do
+    let(:slim) { 'div=bad' }
+
+    it { should report_lint count: 1 }
+  end
+
+  context 'when space_before_output is disabled' do
+    let(:config) { super().merge('space_before_output' => false) }
+
+    context 'and there is no space before =' do
+      let(:slim) { <<~'SLIM' }
+        div= ok
+        .some-class#submit==<> ok
+        title= ok = 1
+      SLIM
+
+      it { should_not report_lint }
+    end
+
+    context 'and there is a space before =' do
+      let(:slim) { 'div = bad' }
+
+      it { should report_lint }
+    end
+
+    context 'and spacing is missing after =' do
+      let(:slim) { 'div=bad' }
+
+      it { should report_lint }
+    end
+
+    context 'and a standalone output statement lacks spacing' do
+      let(:slim) { '=bad' }
 
       it { should report_lint }
     end
@@ -458,6 +585,89 @@ describe SlimLint::Linter::ControlStatementSpacing do
         it 'only fixes spacing, preserving indentation' do
           subject.lints.first.correction.call('  span= foo')
                  .should == '  span = foo'
+        end
+      end
+
+      context 'with an attribute containing =' do
+        let(:slim) { 'a[href="x"]=bad' }
+
+        it 'leaves the attribute untouched' do
+          subject.lints.first.correction.call('a[href="x"]=bad')
+                 .should == 'a[href="x"] = bad'
+        end
+      end
+
+      context 'when applied via the corrector after a multi-line attribute' do
+        let(:slim) { <<~'SLIM' }
+          div class="a \
+           b"
+            span= foo
+            =bar
+        SLIM
+
+        it 'fixes the lines holding the statements' do
+          document = SlimLint::Document.new(normalize_indent(slim), config: config)
+          subject.run(document)
+          SlimLint::Corrector.new(document).correct(subject.lints)
+                             .should == "div class=\"a \\\n b\"\n  span = foo\n  = bar\n"
+        end
+      end
+    end
+
+    context 'for an output statement not attached to a tag' do
+      context 'with a missing space after =' do
+        let(:slim) { '=bad' }
+
+        it 'adds the missing space' do
+          subject.lints.first.correction.call('=bad').should == '= bad'
+        end
+      end
+
+      context 'with a multi-character operator' do
+        let(:slim) { '==<>bad' }
+
+        it 'preserves the operator' do
+          subject.lints.first.correction.call('==<>bad').should == '==<> bad'
+        end
+      end
+
+      context 'with superfluous spacing when indented' do
+        let(:slim) { "p\n  =  bad == 1\n" }
+
+        it 'collapses the spacing, preserving indentation' do
+          subject.lints.first.correction.call('  =  bad == 1')
+                 .should == '  = bad == 1'
+        end
+      end
+    end
+
+    context 'for an output statement when space_before_output is disabled' do
+      let(:config) { super().merge('space_before_output' => false) }
+
+      context 'with a space before =' do
+        let(:slim) { 'div = bad = 1' }
+
+        it 'removes it' do
+          subject.lints.first.correction.call('div = bad = 1')
+                 .should == 'div= bad = 1'
+        end
+      end
+
+      context 'with attribute shortcuts and a multi-character operator' do
+        let(:slim) { '.some-class#submit  ==<>bad' }
+
+        it 'preserves the shortcuts and the operator' do
+          subject.lints.first.correction.call('.some-class#submit  ==<>bad')
+                 .should == '.some-class#submit==<> bad'
+        end
+      end
+
+      context 'with an attribute containing =' do
+        let(:slim) { 'a[href="x"] =  bad' }
+
+        it 'leaves the attribute untouched' do
+          subject.lints.first.correction.call('a[href="x"] =  bad')
+                 .should == 'a[href="x"]= bad'
         end
       end
     end
