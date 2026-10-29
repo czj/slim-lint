@@ -15,6 +15,7 @@ module SlimLint
   #   SlimLint::RakeTask.new do |t|
   #     t.config = 'path/to/custom/slim-lint.yml'
   #     t.files = %w[app/views/**/*.slim custom/*.slim]
+  #     t.options = %w[--reporter json] # Extra command line options
   #     t.quiet = true # Don't display output from slim-lint
   #   end
   #
@@ -49,6 +50,11 @@ module SlimLint
     # @return [Array<String>]
     attr_accessor :files
 
+    # Additional command line options to pass to slim-lint (e.g. `--reporter`
+    # or `--exclude-linter`).
+    # @return [Array<String>]
+    attr_accessor :options
+
     # Whether output from slim-lint should not be displayed to the standard out
     # stream.
     # @return [true,false]
@@ -60,6 +66,7 @@ module SlimLint
     def initialize(name = :slim_lint)
       @name = name
       @files = ['.'] # Search for everything under current directory by default
+      @options = []
       @quiet = false
 
       yield self if block_given?
@@ -89,7 +96,7 @@ module SlimLint
       cli_args = ['--config', config] if config
 
       logger = quiet ? SlimLint::Logger.silent : SlimLint::Logger.new($stdout)
-      result = SlimLint::CLI.new(logger).run(Array(cli_args) + files_to_lint(task_args))
+      result = SlimLint::CLI.new(logger).run(Array(cli_args) + options + files_to_lint(task_args))
 
       fail "#{SlimLint::APP_NAME} failed with exit code #{result}" unless result == 0
     end
@@ -118,6 +125,7 @@ module SlimLint
     def default_description
       description = "Run `#{SlimLint::APP_NAME}"
       description += " --config #{config}" if config
+      description += " #{options.join(' ')}" if options.any?
       description += " #{files.join(' ')}" if files.any?
       description += ' [files...]`'
       description

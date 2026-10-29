@@ -1,5 +1,10 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Add `options` attribute to `SlimLint::RakeTask` to pass additional command
+  line options (e.g. `--reporter`, `--exclude-linter`) to `slim-lint`
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,
