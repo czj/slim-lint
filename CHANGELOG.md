@@ -1,5 +1,10 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Ignore `Style/RedundantLineContinuation` in the `RuboCop` linter by default,
+  since Slim requires the trailing backslash (`\`) to continue a Ruby line
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,
