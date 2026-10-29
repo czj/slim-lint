@@ -1,5 +1,10 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Add `RubySyntax` linter reporting templates that Slim compiles into invalid
+  Ruby code, such as a Ruby comment after `=` output code
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,
