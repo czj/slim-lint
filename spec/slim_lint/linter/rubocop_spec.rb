@@ -48,6 +48,18 @@ describe SlimLint::Linter::RuboCop do
       let(:cop_name) { 'Layout/LineLength' }
       it { should_not report_lint }
     end
+
+    context 'and the offence is a line continuation Slim requires' do
+      let(:slim) { <<-SLIM }
+        = foo( \\
+          bar)
+      SLIM
+
+      let(:line) { 1 }
+      let(:cop_name) { 'Style/RedundantLineContinuation' }
+
+      it { should_not report_lint }
+    end
   end
 
   context 'when the SLIM_LINT_RUBOCOP_CONF environment variable is specified' do
