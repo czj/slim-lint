@@ -1,5 +1,12 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Fix Ruby attribute values (e.g. `href=url`) inside `= ... do` output blocks
+  being dropped from the code passed to RuboCop and `InstanceVariables`,
+  which caused false `Lint/UselessAssignment` and `Lint/UnusedBlockArgument`
+  offenses
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,
