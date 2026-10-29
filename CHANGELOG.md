@@ -1,5 +1,11 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Print a summary of the number of files inspected and lints detected (and
+  corrected, with `--autocorrect`) at the end of the default reporter's
+  output, so a clean run no longer prints nothing
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,
