@@ -321,5 +321,57 @@ describe SlimLint::RubyExtractor do
 
       its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
     end
+
+    context 'with code ending with an omitted hash value' do
+      let(:slim) { <<-SLIM }
+        = render 'fields', f:
+        - content_for :something do
+          | Hello
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        (render 'fields', f:)
+        content_for :something do
+        _slim_lint_puts_0
+        end
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3, 4 => 4 } }
+    end
+
+    context 'with code ending with an omitted hash value that spans multiple lines' do
+      let(:slim) { <<-SLIM }
+        = render 'fields',
+                 f:
+        - some_statement
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        (render 'fields',
+        f:)
+        some_statement
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
+    end
+
+    context 'with code ending with a colon that is not an omitted hash value' do
+      let(:slim) { <<-SLIM }
+        = render 'fields', f: form
+        = link_to 'Next:', path, class: Foo::Bar
+        - if allowed? user:
+          | Allowed
+        = render 'fields' # see:
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        render 'fields', f: form
+        link_to 'Next:', path, class: Foo::Bar
+        if allowed? user:
+        _slim_lint_puts_0
+        end
+        render 'fields' # see:
+      RUBY
+    end
   end
 end

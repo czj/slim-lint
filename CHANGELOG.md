@@ -1,5 +1,10 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Fix `RuboCop` reporting a false `Lint/Syntax` offense when a line ends with
+  an omitted hash value (e.g. `= render 'fields', f:`)
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,

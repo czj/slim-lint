@@ -40,6 +40,15 @@ module SlimLint
     #   to original source line number
     RubySource = Struct.new(:source, :source_map)
 
+    # Matches code ending with a hash value omitted (e.g. `render 'form', f:`).
+    ENDS_WITH_OMITTED_HASH_VALUE = /(?<![:\w])[A-Za-z_]\w*:\s*\z/
+
+    # Matches code opening a control structure, which parentheses would break.
+    STARTS_WITH_CONTROL_KEYWORD = /\A\s*(?:if|unless|elsif|while|until|case)\b/
+
+    # Matches a Ruby comment, which would swallow the closing parenthesis.
+    CONTAINS_COMMENT = /#(?!\{)/
+
     # Extracts Ruby code from Sexp representing a Slim document.
     #
     # @param sexp [SlimLint::Sexp]
@@ -88,6 +97,7 @@ module SlimLint
       return if code.empty?
 
       original_line = sexp.line
+      code = "(#{code})" if wrap_in_parentheses?(code.to_s)
 
       # For code that spans multiple lines, the resulting code will span
       # multiple lines, so we need to create a mapping for each line.
@@ -96,6 +106,18 @@ module SlimLint
         @line_count += 1
         @source_map[@line_count] = original_line + index
       end
+    end
+
+    # Slim compiles each line on its own, but the extracted lines are joined, so
+    # Ruby would read the next line as the value of a trailing omitted hash
+    # value. Wrapping the code in parentheses keeps it to its own line.
+    #
+    # @param code [String]
+    # @return [Boolean]
+    def wrap_in_parentheses?(code)
+      code.match?(ENDS_WITH_OMITTED_HASH_VALUE) &&
+        !code.match?(STARTS_WITH_CONTROL_KEYWORD) &&
+        !code.match?(CONTAINS_COMMENT)
     end
 
     def append_dummy_puts(sexp)
