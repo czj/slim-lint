@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ripper'
+
 module SlimLint
   # Utility class for extracting Ruby script from a Slim template that can then
   # be linted with a Ruby linter (i.e. is "legal" Ruby).
@@ -40,6 +42,17 @@ module SlimLint
     #   to original source line number
     RubySource = Struct.new(:source, :source_map)
 
+    # Matches code opening a control structure or clause, which parentheses
+    # would break.
+    STARTS_WITH_CONTROL_KEYWORD =
+      /\A\s*(?:if|unless|else|elsif|when|in|begin|rescue|ensure|case|while|until)\b/
+
+    # Matches code that Ruby can't read as a hash value.
+    STARTS_WITH_CLAUSE_KEYWORD = /\A\s*(?:end|else|elsif|when|in|rescue|ensure)\b/
+
+    # Ripper tokens to skip when looking for the last token of the code.
+    BLANK_TOKENS = %i[on_sp on_nl on_ignored_nl].freeze
+
     # Extracts Ruby code from Sexp representing a Slim document.
     #
     # @param sexp [SlimLint::Sexp]
@@ -54,6 +67,7 @@ module SlimLint
       @source_map = {}
       @line_count = 0
       @dummy_puts_count = 0
+      @omitted_hash_value_line = nil
     end
 
     on [:html, :doctype] do |sexp|
@@ -88,6 +102,9 @@ module SlimLint
       return if code.empty?
 
       original_line = sexp.line
+      code = code.to_s
+      wrap_omitted_hash_value unless code.match?(STARTS_WITH_CLAUSE_KEYWORD)
+      @omitted_hash_value_line = (@line_count if omitted_hash_value?(code))
 
       # For code that spans multiple lines, the resulting code will span
       # multiple lines, so we need to create a mapping for each line.
@@ -96,6 +113,31 @@ module SlimLint
         @line_count += 1
         @source_map[@line_count] = original_line + index
       end
+    end
+
+    # Slim compiles each line on its own, but the extracted lines are joined, so
+    # Ruby would read the next code as the value of a trailing omitted hash
+    # value. Wrapping the previous code in parentheses keeps it to its own
+    # lines. Before `end` and the like there is nothing to wrap, and RuboCop
+    # would flag parentheses around the only statement of a block.
+    def wrap_omitted_hash_value
+      return unless @omitted_hash_value_line
+
+      @source_lines[@omitted_hash_value_line] = "(#{@source_lines[@omitted_hash_value_line]}"
+      @source_lines[-1] = "#{@source_lines[-1]})"
+    end
+
+    # Whether the code ends with a hash value omitted (`render 'form', f:`),
+    # outside a control statement, which parentheses would break. A trailing
+    # comment ends it too, and would swallow the closing parenthesis.
+    #
+    # @param code [String]
+    # @return [Boolean]
+    def omitted_hash_value?(code)
+      return false unless code.rstrip.end_with?(':') && !code.match?(STARTS_WITH_CONTROL_KEYWORD)
+
+      _, last_token = Ripper.lex(code).reverse_each.find { |_, type| !BLANK_TOKENS.include?(type) }
+      last_token == :on_label
     end
 
     def append_dummy_puts(sexp)

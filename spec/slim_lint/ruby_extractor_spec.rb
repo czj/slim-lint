@@ -321,5 +321,111 @@ describe SlimLint::RubyExtractor do
 
       its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
     end
+
+    context 'with code ending with an omitted hash value' do
+      let(:slim) { <<-SLIM }
+        = render 'fields', f:
+        - content_for :something do
+          | Hello
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        (render 'fields', f:)
+        content_for :something do
+        _slim_lint_puts_0
+        end
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3, 4 => 4 } }
+    end
+
+    context 'with code ending with an omitted hash value that spans multiple lines' do
+      let(:slim) { <<-SLIM }
+        = render 'fields',
+                 f:
+        - some_statement
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        (render 'fields',
+        f:)
+        some_statement
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
+    end
+
+    context 'with code ending with an omitted hash value before the end of a block' do
+      let(:slim) { <<-SLIM }
+        - items.each do |item|
+          = render 'item', item:
+        - case item
+        - in name:
+          = name
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        items.each do |item|
+        render 'item', item:
+        end
+        case item
+        in name:
+        name
+        end
+      RUBY
+    end
+
+    context 'with code ending with an omitted hash value after a hash sign or a non-ASCII name' do
+      let(:slim) { <<-SLIM }
+        = link_to 'Top', '#', id:
+        = render 'menu', café:
+        - some_statement
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        (link_to 'Top', '#', id:)
+        (render 'menu', café:)
+        some_statement
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
+    end
+
+    context 'with code ending with a colon that is not an omitted hash value' do
+      let(:slim) { <<-SLIM }
+        = render 'fields', f: form
+        = link_to 'Next:', path, class: Foo::Bar
+        - foo = bar ? baz:
+        = render 'fields' # see:
+        = render 'fields', f: # with a comment
+        - qux
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        render 'fields', f: form
+        link_to 'Next:', path, class: Foo::Bar
+        foo = bar ? baz:
+        render 'fields' # see:
+        render 'fields', f: # with a comment
+        qux
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6 } }
+    end
+
+    context 'with a control statement ending with an omitted hash value' do
+      let(:slim) { <<-SLIM }
+        - if allowed? user:
+          | Allowed
+      SLIM
+
+      its(:source) { should == normalize_indent(<<-RUBY).chomp }
+        if allowed? user:
+        _slim_lint_puts_0
+        end
+      RUBY
+
+      its(:source_map) { should == { 1 => 1, 2 => 2, 3 => 3 } }
+    end
   end
 end
