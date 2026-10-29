@@ -345,8 +345,23 @@ example.slim:2 [W] Useless assignment to variable - unused_variable
 
 You can customize which RuboCop warnings you want to ignore by modifying
 the `ignored_cops` option (see [`config/default.yml`](/config/default.yml)
-for the full list of ignored cops). Note that if you modify the list you'll
-need to re-include all the items from the default configuration.
+for the full list of ignored cops). Setting `ignored_cops` in your own
+`.slim-lint.yml` replaces the default list rather than adding to it, so cops
+like `Layout/EmptyLineAfterGuardClause` would start reporting false positives
+again. To ignore an extra cop, copy the default list and append to it:
+
+```yaml
+linters:
+  RuboCop:
+    ignored_cops:
+      # Copied from slim-lint's config/default.yml
+      - Layout/ArgumentAlignment
+      - Layout/ArrayAlignment
+      # ...the rest of the default list...
+      - Style/WhileUntilModifier
+      # Your additions
+      - Lint/Syntax
+```
 
 You can also explicitly set which RuboCop configuration to use via the
 `SLIM_LINT_RUBOCOP_CONF` environment variable. This is intended to be used

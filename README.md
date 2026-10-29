@@ -102,6 +102,8 @@ any automated rewrite, review the diff before committing.
 the directory `slim-lint` is being run from, ascending until a configuration
 file is found. Any configuration loaded is automatically merged with the
 default configuration (see [`config/default.yml`](config/default.yml)).
+Nested options are merged, but a list you set (such as `include`, `exclude`
+or the `RuboCop` linter's `ignored_cops`) replaces the default one.
 
 Here's an example configuration file:
 
