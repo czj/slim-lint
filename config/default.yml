@@ -89,6 +89,9 @@ linters:
       - Style/WhileUntilDo
       - Style/WhileUntilModifier
 
+  RubySyntax:
+    enabled: true
+
   StrictLocalsMissing:
     enabled: false
     include:

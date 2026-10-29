@@ -14,6 +14,7 @@ Below is a list of linters supported by `slim-lint`, ordered alphabetically.
 - [QuoteConsistency](#quoteconsistency)
 - [RedundantDiv](#redundantdiv)
 - [RuboCop](#rubocop)
+- [RubySyntax](#rubysyntax)
 - [StrictLocalsMissing](#strictlocalsmissing)
 - [Tab](#tab)
 - [Tag](#tag)
@@ -363,6 +364,29 @@ You can display the name of the cop by adding the following to your
 AllCops:
   DisplayCopNames: true
 ```
+
+## RubySyntax
+
+Reports templates that Slim compiles into invalid Ruby code. Those templates
+raise a `SyntaxError` when rendered, yet each line of Ruby they contain can be
+valid on its own, so the `RuboCop` linter does not see the problem.
+
+**Bad**
+
+```slim
+= 1 + 1 # this equals 2
+```
+
+**Good**
+
+```slim
+/ This equals 2
+= 1 + 1
+```
+
+A Ruby comment after `=` output code swallows the closing parentheses Slim adds
+around it. Embedded engines that Slim renders at compile time (`markdown:`,
+`scss:`, `coffee:`, etc.) are not checked.
 
 ## StrictLocalsMissing
 
