@@ -7,7 +7,8 @@ describe SlimLint::Reporter::DefaultReporter do
     let(:io) { StringIO.new }
     let(:output) { io.string }
     let(:logger) { SlimLint::Logger.new(io) }
-    let(:report) { SlimLint::Report.new(lints, []) }
+    let(:files) { ['some-filename.slim', 'other-filename.slim'] }
+    let(:report) { SlimLint::Report.new(lints, files) }
     let(:reporter) { described_class.new(logger) }
 
     subject { reporter.display_report(report) }
@@ -15,9 +16,18 @@ describe SlimLint::Reporter::DefaultReporter do
     context 'when there are no lints' do
       let(:lints) { [] }
 
-      it 'prints nothing' do
+      it 'prints only the summary' do
         subject
-        output.should be_empty
+        output.should == "2 files inspected, no lints detected\n"
+      end
+
+      context 'when a single file was inspected' do
+        let(:files) { ['some-filename.slim'] }
+
+        it 'uses the singular in the summary' do
+          subject
+          output.should == "1 file inspected, no lints detected\n"
+        end
       end
     end
 
@@ -34,9 +44,24 @@ describe SlimLint::Reporter::DefaultReporter do
         end
       end
 
-      it 'prints each lint on its own line' do
+      it 'prints each lint on its own line, then a blank line and the summary' do
         subject
-        output.count("\n").should == 2
+        output.lines.count.should == 4
+        output.lines[2].should == "\n"
+      end
+
+      it 'ends with a summary of the files inspected and lints detected' do
+        subject
+        output.lines.last.should == "2 files inspected, 2 lints detected\n"
+      end
+
+      context 'when there is a single lint' do
+        let(:filenames) { ['some-filename.slim'] }
+
+        it 'uses the singular in the summary' do
+          subject
+          output.lines.last.should == "2 files inspected, 1 lint detected\n"
+        end
       end
 
       it 'prints a trailing newline' do
@@ -47,7 +72,7 @@ describe SlimLint::Reporter::DefaultReporter do
       it 'prints the filename for each lint' do
         subject
         filenames.each do |filename|
-          output.scan(/#{filename}/).count.should == 1
+          output.scan(/#{filename}:/).count.should == 1
         end
       end
 
@@ -66,9 +91,9 @@ describe SlimLint::Reporter::DefaultReporter do
       end
 
       context 'when lints are warnings' do
-        it 'prints the warning severity code on each line' do
+        it 'prints the warning severity code on each lint line' do
           subject
-          output.split("\n").each do |line|
+          output.lines.first(2).each do |line|
             line.scan(/\[W\]/).count.should == 1
           end
         end
@@ -77,9 +102,9 @@ describe SlimLint::Reporter::DefaultReporter do
       context 'when lints are errors' do
         let(:severities) { [:error] * 2 }
 
-        it 'prints the error severity code on each line' do
+        it 'prints the error severity code on each lint line' do
           subject
-          output.split("\n").each do |line|
+          output.lines.first(2).each do |line|
             line.scan(/\[E\]/).count.should == 1
           end
         end
@@ -96,6 +121,11 @@ describe SlimLint::Reporter::DefaultReporter do
         it 'does not mark the uncorrected lint as `[Corrected]`' do
           subject
           output.scan(/\[Corrected\]/).count.should == 1
+        end
+
+        it 'reports the corrected count in the summary' do
+          subject
+          output.lines.last.should == "2 files inspected, 2 lints detected, 1 lint corrected\n"
         end
       end
 

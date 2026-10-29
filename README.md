@@ -61,7 +61,8 @@ slim-lint
 ```
 
 `slim-lint` will output any problems with your Slim, including the offending
-filename and line number.
+filename and line number, followed by a summary such as
+`12 files inspected, no lints detected`.
 
 Command Line Flag         | Description
 --------------------------|----------------------------------------------------
