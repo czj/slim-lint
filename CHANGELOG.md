@@ -1,5 +1,15 @@
 # Slim-Lint Changelog
 
+## master (unreleased)
+
+* Report missing spacing after the `=` of output statements not attached to
+  a tag (`=foo`, `==foo`) in `ControlStatementSpacing`
+* Add `space_before_output` option to `ControlStatementSpacing` to require
+  `div= foo` instead of `div = foo`
+* Fix `ControlStatementSpacing` autocorrect altering an `=` inside the tag
+  attributes (`a[href="x"]=foo`), or the wrong line after an attribute
+  spanning multiple lines
+
 ## 0.37.0
 
 * Add autocorrect support to `CommentControlStatement`,

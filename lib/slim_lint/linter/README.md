@@ -84,16 +84,38 @@ _Supports autocorrect (`-a`/`--autocorrect`)._
 
 Reports missing or superfluous spacing before and after control statements
 
+| Option                | Description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
+| `space_before_output` | Whether a space is required before the `=` after a tag. (default `true`) |
+
 **Bad**
 
 ```slim
 div= some_code
+-other_code
+=more_code
 ```
 
 **Good**
 
 ```slim
 div = some_code
+- other_code
+= more_code
+```
+
+With `space_before_output: false`, the `=` must follow the tag directly:
+
+**Bad**
+
+```slim
+div = some_code
+```
+
+**Good**
+
+```slim
+div= some_code
 ```
 
 ## EmbeddedEngines

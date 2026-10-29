@@ -17,6 +17,7 @@ linters:
 
   ControlStatementSpacing:
     enabled: true
+    space_before_output: true
 
   EmbeddedEngines:
     enabled: false
