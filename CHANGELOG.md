@@ -4,6 +4,8 @@
 
 * Fix `TagCase` reporting (and autocorrecting) case-sensitive tag names such
   as `pubDate` in documents with an XML doctype
+* Fix `RuboCop` reporting a false `Lint/Syntax` offense when a line ends with
+  an omitted hash value (e.g. `= render 'fields', f:`)
 
 ## 0.37.0
 

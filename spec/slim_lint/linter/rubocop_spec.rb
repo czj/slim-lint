@@ -63,3 +63,52 @@ describe SlimLint::Linter::RuboCop do
     end
   end
 end
+
+describe SlimLint::Linter::RuboCop do
+  include_context 'linter'
+
+  around do |example|
+    Dir.mktmpdir do |dir|
+      rubocop_config = File.join(dir, '.rubocop.yml')
+      File.write(rubocop_config, <<~YAML)
+        AllCops:
+          NewCops: disable
+          SuggestExtensions: false
+          TargetRubyVersion: 3.1
+      YAML
+
+      SlimLint::Utils.with_environment 'SLIM_LINT_RUBOCOP_CONF' => rubocop_config do
+        example.run
+      end
+    end
+  end
+
+  context 'when a line ends with an omitted hash value' do
+    let(:slim) { <<-SLIM }
+      = render 'fields', f:
+      - content_for :something do
+        | Hello
+    SLIM
+
+    it { should_not report_lint }
+  end
+
+  context 'when an omitted hash value is the only statement of a block' do
+    let(:slim) { <<-SLIM }
+      - items.each do |item|
+        = render 'item', item:
+    SLIM
+
+    it { should_not report_lint }
+  end
+
+  context 'when a later line has an offense' do
+    let(:slim) { <<-SLIM }
+      = render 'fields', f:
+      - content_for :something do
+        = render "fields"
+    SLIM
+
+    it { should report_lint line: 3 }
+  end
+end
